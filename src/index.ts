@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
+import Rx from 'rxjs'
 
 import { Args, File, getFilesToScan } from './args';
 import { readScanInfo, ScannedImage, writeScanInfo } from './scanInfo';
@@ -17,26 +18,29 @@ const scannerOptions = {
 }
 const scanner = createScanner(scannerOptions)
 
-const args = getFilesToScan(process.argv)
+const { directory, files, forceRescan } = getFilesToScan(process.argv)
+const scanInfo = readScanInfo(directory)
 
-scanFiles(args)
+Rx.Observable.interval(600)
+  .take(files.length)
+  .map(i => files[i])
+  .filter(shouldScan)
+  .subscribe(file => {
+    scanFile(file).then(({ success, result }) => {
+      if (success) {
+        scanInfo.images[file.name] = result
+        writeScanInfo(directory, scanInfo)
+      }
+    })
+  })
 
-async function scanFiles({ directory, files, forceRescan }: Args) {
-  const scanInfo = readScanInfo(args.directory)
-
-  for (let file of files) {
-    if (!forceRescan && scanInfo.images[file.name]) {
-      console.log(`Already scanned: ${file.name}`)
-      continue
-    }
-    
-    const { success, result } = await scanFile(file)
-
-    if (success) {
-      scanInfo.images[file.name] = result
-      writeScanInfo(args.directory, scanInfo)
-    }
+function shouldScan(file: File): boolean {
+  if (!forceRescan && scanInfo.images[file.name]) {
+    console.log(`Already scanned: ${file.name}`)
+    return false
   }
+
+  return true
 }
 
 async function scanFile({ directory, name, path }: File): Promise<ImageScanResult> {

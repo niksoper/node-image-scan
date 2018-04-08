@@ -13,7 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "minimist": "^1.2.0",
-    "request": "^2.85.0"
+    "request": "^2.85.0",
+    "rxjs": "^5.5.8"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.0",
