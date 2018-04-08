@@ -38,10 +38,9 @@ readdir(directory, async (err, files) => {
     
     if (success) {
       scanInfo.images[file] = result
+      writeScanInfo(directory, scanInfo)
     }
   }
-
-  writeScanInfo(directory, scanInfo)
 })
 
 async function scanFile(directory: string, name: string): Promise<ImageScanResult> {
