@@ -1,7 +1,7 @@
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdir } from 'fs';
+import { copyFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
 
-import { parseArgs } from './args';
+import { Args, File, getFilesToScan } from './args';
 import { readScanInfo, ScannedImage, writeScanInfo } from './scanInfo';
 import { createScanner, Prediction } from './scanner';
 
@@ -17,36 +17,31 @@ const scannerOptions = {
 }
 const scanner = createScanner(scannerOptions)
 
-const { directory } = parseArgs(process.argv)
+const args = getFilesToScan(process.argv)
 
-readdir(directory, async (err, files) => {
-  const scanInfo = readScanInfo(directory)
-  
+scanFiles(args)
+
+async function scanFiles({ directory, files }: Args) {
+  const scanInfo = readScanInfo(args.directory)
+
   for (let file of files) {
-    const filePath = path.resolve(directory, file)
-    
-    if (!isImage(filePath)) {
+    if (scanInfo.images[file.name]) {
+      console.log(`Already scanned: ${file.name}`)
       continue
     }
-
-    if (scanInfo.images[file]) {
-      console.log(`Skipping ${file} - already scanned`)
-      continue
-    }
-
-    const { success, result } = await scanFile(directory, file)
     
+    const { success, result } = await scanFile(file)
+
     if (success) {
-      scanInfo.images[file] = result
-      writeScanInfo(directory, scanInfo)
+      scanInfo.images[file.name] = result
+      writeScanInfo(args.directory, scanInfo)
     }
   }
-})
+}
 
-async function scanFile(directory: string, name: string): Promise<ImageScanResult> {
-  const filePath = path.resolve(directory, name)
+async function scanFile({ directory, name, path }: File): Promise<ImageScanResult> {
   console.log(`Scanning ${name}...`)
-  const { response, rawBody, body } = await scanner(filePath)
+  const { response, rawBody, body } = await scanner(path)
 
   console.log(`Got ${response.statusCode} from ${name}`)
   if (response.statusCode !== 200) {
@@ -86,19 +81,4 @@ function copyTag(directory: string, name: string, prediction: Prediction) {
   const to = path.resolve(tagDirectory, name)
   console.log(`Writing ${to}`)
   copyFileSync(from, to)
-}
-
-function isImage(filePath: string) {
-  if (lstatSync(filePath).isDirectory()) {
-    console.log(`Skipping directory: ${filePath}`)
-    return false
-  }
-
-  const supportedExtensions = ['.jpg', '.jpeg', '.png']
-  if (!supportedExtensions.some(extension => path.extname(filePath).toLowerCase() === extension)) {
-    console.log(`Skipping ${filePath} - not an image`)
-    return false
-  }
-
-  return true
 }
