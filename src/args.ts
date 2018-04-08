@@ -5,6 +5,7 @@ import path from 'path';
 export interface Args {
   directory: string
   files: File[]
+  forceRescan: boolean
 }
 
 export interface File {
@@ -15,6 +16,7 @@ export interface File {
 
 export function getFilesToScan(args: string[]): Args {
   const argv = minimist(args.slice(2))
+  const forceRescan = !!argv.f
   let [firstArg] = argv._
   if (firstArg.match(/^".*"$/)) {
     firstArg = firstArg.substring(1, firstArg.length - 2)
@@ -32,6 +34,7 @@ export function getFilesToScan(args: string[]): Args {
     return {
       directory: firstArg,
       files,
+      forceRescan,
     }
   }
 
@@ -43,7 +46,8 @@ export function getFilesToScan(args: string[]): Args {
         directory,
         name: path.basename(firstArg),
         path: path.resolve(firstArg),
-      }]
+      }],
+      forceRescan,
     }
   }
 }

@@ -21,11 +21,11 @@ const args = getFilesToScan(process.argv)
 
 scanFiles(args)
 
-async function scanFiles({ directory, files }: Args) {
+async function scanFiles({ directory, files, forceRescan }: Args) {
   const scanInfo = readScanInfo(args.directory)
 
   for (let file of files) {
-    if (scanInfo.images[file.name]) {
+    if (!forceRescan && scanInfo.images[file.name]) {
       console.log(`Already scanned: ${file.name}`)
       continue
     }
