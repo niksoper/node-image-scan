@@ -1,5 +1,5 @@
-import { createReadStream } from "fs"
-import request, { RequestCallback } from 'request'
+import { createReadStream } from 'fs';
+import request from 'request';
 
 export interface ScannerOptions {
   url: string
